@@ -33,7 +33,7 @@ DEFAULT_MAX_RETRIES = 3
 DEFAULT_INITIAL_DELAY = 1.0
 DEFAULT_RETRY_MULTIPLIER = 1.5
 DEFAULT_MAX_DELAY = 60.0
-DEFAULT_MODEL = "openai/gpt-4o-2024-11-20"
+DEFAULT_MODEL = "nvidia/llama-3.1-nemotron-70b-instruct:free"
 DEFAULT_TEMPERATURE = 1.0
 
 logger = logging.getLogger(__name__)
