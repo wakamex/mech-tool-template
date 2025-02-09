@@ -1,9 +1,9 @@
 name: openrouter
-author: valory
+author: wakamex
 version: 0.1.0
 type: custom
-description: A tool that provides a wrapper around the OpenRouter API with retry logic
-  and error handling.
+description: A tool that provides a wrapper around the OpenRouter API with retry logic,
+  extra parameters, and error handling.
 license: Apache-2.0
 aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
