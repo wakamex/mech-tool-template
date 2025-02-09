@@ -1,0 +1,17 @@
+name: openrouter
+author: wakamex
+version: 0.1.0
+type: custom
+description: A tool that provides a wrapper around the OpenRouter API with retry logic,
+  extra parameters, and error handling.
+license: Apache-2.0
+aea_version: '>=1.0.0, <2.0.0'
+fingerprint:
+  __init__.py: bafybeib5ka6k23yhduahxvvxkghikajrgpwjse6kpsciheo43x2ptgkwje
+  openrouter.py: bafybeifdvz2lsj5jb2e6e4kxkrrzq2outlrqwd6kpbme2gaadt2kb4xp3u
+fingerprint_ignore_patterns: []
+entry_point: openrouter.py
+callable: run
+dependencies:
+  openai:
+    version: ==1.12.0
