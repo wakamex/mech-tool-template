@@ -23,6 +23,8 @@ import logging
 import random
 import time
 from typing import Any, Dict, Optional, Tuple
+import requests
+import json
 
 import openai
 
@@ -32,6 +34,7 @@ DEFAULT_INITIAL_DELAY = 1.0
 DEFAULT_RETRY_MULTIPLIER = 1.5
 DEFAULT_MAX_DELAY = 60.0
 DEFAULT_MODEL = "openai/gpt-4o-2024-11-20"
+DEFAULT_TEMPERATURE = 1.0
 
 logger = logging.getLogger(__name__)
 
@@ -45,18 +48,21 @@ def with_retries(func):
 
         retries = 0
         delay = initial_delay
-        last_exception = None
 
         while retries <= max_retries:
             try:
                 return func(*args, **kwargs)
-            except Exception as e:
-                last_exception = e
+            except (requests.exceptions.RequestException, 
+                   requests.exceptions.HTTPError,
+                   requests.exceptions.ConnectionError,
+                   requests.exceptions.Timeout,
+                   ValueError,
+                   json.JSONDecodeError) as exc:
                 retries += 1
-
                 if retries > max_retries:
-                    logger.error(f"Max retries ({max_retries}) exceeded for {func.__name__}")
-                    raise last_exception
+                    logger.error("Max retries (%s) exceeded for %s: %s", max_retries, func.__name__, exc)
+                    raise exc
+                logger.warning("Attempt %d/%d failed for %s: %s", retries, max_retries, func.__name__, exc)
 
                 # Calculate next delay with exponential backoff and jitter
                 multiplier = retry_multiplier
@@ -64,16 +70,15 @@ def with_retries(func):
                 delay = min(delay * multiplier, max_delay)
                 delay += random.uniform(0, 0.1 * delay)  # Add jitter up to 10%
 
-                logger.warning(f"Error in {func.__name__} (attempt {retries}/{max_retries}): {str(e)}, retrying in {delay:.2f} seconds...")
+                logger.warning("Error in %s (attempt %s/%s): %s, retrying in %.2f seconds...", func.__name__, retries, max_retries, str(exc), delay)
                 time.sleep(delay)
 
-        raise last_exception
     return wrapper
 
 @with_retries
 def _get_model_response(model: str, prompt: str, api_key: str) -> Dict:
     """Get a response from a model."""
-    logger.debug(f"Getting response from {model}")
+    logger.debug("Getting response from %s", model)
 
     client = openai.OpenAI(
         base_url="https://openrouter.ai/api/v1",
@@ -91,7 +96,7 @@ def _get_model_response(model: str, prompt: str, api_key: str) -> Dict:
         ]
     )
     response_text = response.choices[0].message.content
-    logger.debug(f"Raw response length from {model}: {len(response_text)} chars")
+    logger.debug("Raw response length from %s: %s chars", model, len(response_text))
 
     return response_text
 
@@ -141,7 +146,7 @@ def run(**kwargs) -> Tuple[Optional[str], Optional[Dict[str, Any]], Any, Any]:
 
         return response, None, None, None
 
-    except Exception as e:
-        error_msg = f"Error while calling OpenRouter API: {str(e)}"
+    except (requests.exceptions.RequestException, json.JSONDecodeError) as exc:
+        error_msg = f"Error while calling OpenRouter API: {str(exc)}"
         logger.error(error_msg)
         return error_msg, None, None, None
