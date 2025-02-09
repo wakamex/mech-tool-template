@@ -85,7 +85,14 @@ def _get_model_response(
         presence_penalty: float | None = None,
         logprobs: bool | None = None,
         max_tokens: int | None = None,
-        response_format: Literal["text", "json_object"] | None = None
+        response_format: Literal["text", "json_object"] | None = None,
+        provider_order: list[str] | None = None,
+        allow_fallbacks: bool | None = None,
+        require_parameters: bool | None = None,
+        data_collection: Literal["allow", "deny"] | None = None,
+        ignore_providers: list[str] | None = None,
+        quantizations: list[Literal["int4", "int8", "fp6", "fp8", "fp16", "bf16", "fp32", "unknown"]] | None = None,
+        sort: Literal["price", "throughput"] | None = None
     ) -> Dict:
     """Get a response from a model."""
     logger.debug("Getting response from %s", model)
@@ -99,19 +106,37 @@ def _get_model_response(
         }
     )
 
+    # Build provider preferences if any are specified
+    provider_prefs = dict((k, v) for (k, v) in [
+        ("order", provider_order),
+        ("allow_fallbacks", allow_fallbacks),
+        ("require_parameters", require_parameters),
+        ("data_collection", data_collection),
+        ("ignore", ignore_providers),
+        ("quantizations", quantizations),
+        ("sort", sort)
+    ] if v is not None)
+
+    # Build request parameters
+    params = dict((k, v) for (k, v) in [
+        ("frequency_penalty", frequency_penalty),
+        ("presence_penalty", presence_penalty),
+        ("logprobs", logprobs),
+        ("max_tokens", max_tokens),
+        ("response_format", response_format)
+    ] if v is not None)
+
+    # Add provider preferences to extra_body if any are specified
+    extra_body = {"provider": provider_prefs} if provider_prefs else None
+
     response = client.chat.completions.create(
         model=model,
         messages=[
             {"role": "user", "content": prompt},
         ],
         temperature=temperature,
-        **dict((k, v) for (k, v) in [
-            ("frequency_penalty", frequency_penalty),
-            ("presence_penalty", presence_penalty),
-            ("logprobs", logprobs),
-            ("max_tokens", max_tokens),
-            ("response_format", response_format)
-        ] if v is not None)
+        extra_body=extra_body,
+        **params
     )
     response_text = response.choices[0].message.content
     logger.debug("Raw response length from %s: %s chars", model, len(response_text))
