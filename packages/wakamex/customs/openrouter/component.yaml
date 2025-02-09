@@ -1,0 +1,17 @@
+name: openrouter
+author: valory
+version: 0.1.0
+type: custom
+description: A tool that provides a wrapper around the OpenRouter API with retry logic
+  and error handling.
+license: Apache-2.0
+aea_version: '>=1.0.0, <2.0.0'
+fingerprint:
+  __init__.py: bafybeib5ka6k23yhduahxvvxkghikajrgpwjse6kpsciheo43x2ptgkwje
+  openrouter.py: bafybeifovr4aeewir6zvpvos7rtos7zhgob5lrmufg3lbnvpx4crn2bwbi
+fingerprint_ignore_patterns: []
+entry_point: openrouter.py
+callable: run
+dependencies:
+  openai:
+    version: ==1.12.0
