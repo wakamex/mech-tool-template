@@ -31,19 +31,7 @@ DEFAULT_MAX_RETRIES = 3
 DEFAULT_INITIAL_DELAY = 1.0
 DEFAULT_RETRY_MULTIPLIER = 1.5
 DEFAULT_MAX_DELAY = 60.0
-DEFAULT_MODELS = [
-    "openrouter/openai/gpt-4o-2024-11-20",
-    "openrouter/anthropic/claude-3.5-sonnet:beta",
-    "openrouter/google/gemini-pro-1.5",
-    "openrouter/google/gemma-2-27b-it",
-    "openrouter/meta-llama/llama-3.3-70b-instruct",
-    "openrouter/meta-llama/llama-3.1-405b-instruct",
-    "openrouter/nousresearch/hermes-3-llama-3.1-405b",
-    "openrouter/x-ai/grok-2-1212",
-    "openrouter/mistralai/mistral-large-2411",
-    "openrouter/qwen/qwen-2.5-72b-instruct",
-    "openrouter/deepseek/deepseek-chat",
-]
+DEFAULT_MODEL = "openai/gpt-4o-2024-11-20"
 
 logger = logging.getLogger(__name__)
 
@@ -87,21 +75,22 @@ def _get_model_response(model: str, prompt: str, api_key: str) -> Dict:
     """Get a response from a model."""
     logger.debug(f"Getting response from {model}")
 
-    openai.api_base = "https://openrouter.ai/api/v1"
-    openai.api_key = api_key
+    client = openai.OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=api_key,
+        default_headers={
+            "HTTP-Referer": "https://registry.olas.network/ethereum/components/ENTER_MINTED_COMPONENT_NUMBER_HERE",
+            "X-Title": "Autonolas",
+        }
+    )
 
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model=model,
         messages=[
             {"role": "user", "content": prompt},
-        ],
-        headers={
-            "HTTP-Referer": "https://registry.olas.network/ethereum/components", 
-            "X-Title": "Autonolas",
-        },
+        ]
     )
-    response = response.choices[0].message
-    response_text = str(response)
+    response_text = response.choices[0].message.content
     logger.debug(f"Raw response length from {model}: {len(response_text)} chars")
 
     return response_text
@@ -112,7 +101,7 @@ def run(**kwargs) -> Tuple[Optional[str], Optional[Dict[str, Any]], Any, Any]:
     Args:
         **kwargs: Keyword arguments:
             - prompt: The prompt to send to the model
-            - model: Optional model to use (defaults to first in DEFAULT_MODELS)
+            - model: Optional model to use (defaults to DEFAULT_MODEL)
             - api_keys: Dict containing "openrouter" API key
             - max_retries: Optional max retry attempts
             - initial_delay: Optional initial retry delay
@@ -137,9 +126,7 @@ def run(**kwargs) -> Tuple[Optional[str], Optional[Dict[str, Any]], Any, Any]:
         return "No OpenRouter API key has been specified.", None, None, None
 
     # Get optional parameters
-    model = kwargs.get("model", DEFAULT_MODELS[0])
-    if model not in DEFAULT_MODELS:
-        return f"Model {model} is not an available model {DEFAULT_MODELS}", None, None, None
+    model = kwargs.get("model", DEFAULT_MODEL)
 
     try:
         response = _get_model_response(
