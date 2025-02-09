@@ -22,7 +22,7 @@
 import logging
 import random
 import time
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Literal, Optional, Tuple
 import requests
 import json
 
@@ -76,7 +76,17 @@ def with_retries(func):
     return wrapper
 
 @with_retries
-def _get_model_response(model: str, prompt: str, api_key: str) -> Dict:
+def _get_model_response(
+        model: str,
+        prompt: str,
+        api_key: str,
+        temperature: float | None = DEFAULT_TEMPERATURE,
+        frequency_penalty: float | None = None,
+        presence_penalty: float | None = None,
+        logprobs: bool | None = None,
+        max_tokens: int | None = None,
+        response_format: Literal["text", "json_object"] | None = None
+    ) -> Dict:
     """Get a response from a model."""
     logger.debug("Getting response from %s", model)
 
@@ -93,7 +103,15 @@ def _get_model_response(model: str, prompt: str, api_key: str) -> Dict:
         model=model,
         messages=[
             {"role": "user", "content": prompt},
-        ]
+        ],
+        temperature=temperature,
+        **dict((k, v) for (k, v) in [
+            ("frequency_penalty", frequency_penalty),
+            ("presence_penalty", presence_penalty),
+            ("logprobs", logprobs),
+            ("max_tokens", max_tokens),
+            ("response_format", response_format)
+        ] if v is not None)
     )
     response_text = response.choices[0].message.content
     logger.debug("Raw response length from %s: %s chars", model, len(response_text))
